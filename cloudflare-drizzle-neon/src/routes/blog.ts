@@ -16,6 +16,7 @@ blogRouter.use('/*', async (c, next) => {
   const authHeader = c.req.raw.headers.get('Authorization') || '';
   const token = authHeader.replace('Bearer ', '');
   const payload = await verify(token, c.env.JWT_SECRET_KEY);
+  console.log('payload', payload);
   if (!payload) {
     c.status(403);
     return c.json({ error: 'Unauthorized' });
@@ -77,12 +78,12 @@ blogRouter.put('/', async (c) => {
   }
 });
 
-blogRouter.get('/blogs-with-pagination', async (c) => {
+blogRouter.get('/pagination', async (c) => {
   try {
     const client = new Pool({ connectionString: c.env.DATABASE_URL });
     const db = drizzle(client);
-    const cursor = parseInt(c.req.query('cursor') as string, 10) || undefined;
-    const limit = parseInt(c.req.query('limit') as string, 10) || 10;
+    const cursor = parseInt(c.req.query('cursor') || '0');
+    const limit = parseInt(c.req.query('limit') || '10');
 
     const allBlogs = await db
       .select()
@@ -102,13 +103,13 @@ blogRouter.get('/blogs-with-pagination', async (c) => {
   }
 });
 
-blogRouter.get('/:blogId', async (c) => {
+blogRouter.get('/:blogID', async (c) => {
   try {
     const client = new Pool({ connectionString: c.env.DATABASE_URL });
     const db = drizzle(client);
-    const blogId = parseInt(c.req.param('blogId'), 10);
+    const blogID = parseInt(c.req.param('blogID'), 10);
 
-    const [blog] = await db.select().from(blogs).where(eq(blogs.id, blogId)).limit(1).execute();
+    const [blog] = await db.select().from(blogs).where(eq(blogs.id, blogID)).limit(1).execute();
 
     return c.json({
       blog,

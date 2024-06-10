@@ -4,7 +4,7 @@
 // // through wrangler, or we can potentially let users directly add them as a sort
 // // of "plugin" system.
 
-import worker from "/home/voldemort/Downloads/Code/Cohort_2/week_12/cloudflare-drizzle-neon/.wrangler/tmp/bundle-f93OG4/middleware-insertion-facade.js";
+import worker from "/home/voldemort/Downloads/Code/Cohort_2/week_12/cloudflare-drizzle-neon/.wrangler/tmp/bundle-B3gwsa/middleware-insertion-facade.js";
 import {
 	__facade_invoke__,
 	__facade_register__,
@@ -13,7 +13,7 @@ import {
 } from "/home/voldemort/Downloads/Code/Cohort_2/week_12/cloudflare-drizzle-neon/node_modules/wrangler/templates/middleware/common.ts";
 
 // We need to preserve all of the exports from the worker
-export * from "/home/voldemort/Downloads/Code/Cohort_2/week_12/cloudflare-drizzle-neon/.wrangler/tmp/bundle-f93OG4/middleware-insertion-facade.js";
+export * from "/home/voldemort/Downloads/Code/Cohort_2/week_12/cloudflare-drizzle-neon/.wrangler/tmp/bundle-B3gwsa/middleware-insertion-facade.js";
 
 class __Facade_ScheduledController__ implements ScheduledController {
 	#noRetry: ScheduledController["noRetry"];

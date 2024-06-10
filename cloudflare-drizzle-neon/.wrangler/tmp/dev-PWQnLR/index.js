@@ -9,7 +9,7 @@ var __publicField = (obj, key, value) => {
   return value;
 };
 
-// .wrangler/tmp/bundle-f93OG4/checked-fetch.js
+// .wrangler/tmp/bundle-B3gwsa/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -12925,8 +12925,8 @@ userRouter.post("/signup", async (c) => {
     }).returning();
     const payload = {
       sub: user.id,
-      exp: Math.floor(Date.now() / 1e3) + 60 * 30
-      // Token expires in 30 minutes
+      exp: Math.floor(Date.now() / 1e3) + 60 * 30 * 4
+      // Token expires in 24 hours
     };
     const secret = c.env.JWT_SECRET_KEY;
     const token = await sign2(payload, secret);
@@ -12950,8 +12950,8 @@ userRouter.post("/signin", async (c) => {
     }
     const payload = {
       sub: user.id,
-      exp: Math.floor(Date.now() / 1e3) + 60 * 30
-      // Token expires in 30 minutes
+      exp: Math.floor(Date.now() / 1e3) + 60 * 30 * 4
+      // Token expires in 24 hours
     };
     const secret = c.env.JWT_SECRET_KEY;
     const token = await sign2(payload, secret);
@@ -12971,6 +12971,7 @@ blogRouter.use("/*", async (c, next) => {
   const authHeader = c.req.raw.headers.get("Authorization") || "";
   const token = authHeader.replace("Bearer ", "");
   const payload = await verify2(token, c.env.JWT_SECRET_KEY);
+  console.log("payload", payload);
   if (!payload) {
     c.status(403);
     return c.json({ error: "Unauthorized" });
@@ -13018,12 +13019,12 @@ blogRouter.put("/", async (c) => {
     return c.json({ error });
   }
 });
-blogRouter.get("/blogs-with-pagination", async (c) => {
+blogRouter.get("/pagination", async (c) => {
   try {
     const client = new Zs({ connectionString: c.env.DATABASE_URL });
     const db = drizzle(client);
-    const cursor = parseInt(c.req.query("cursor"), 10) || void 0;
-    const limit = parseInt(c.req.query("limit"), 10) || 10;
+    const cursor = parseInt(c.req.query("cursor") || "0");
+    const limit = parseInt(c.req.query("limit") || "10");
     const allBlogs = await db.select().from(blogs).where(cursor ? gt(blogs.id, cursor) : void 0).limit(limit).orderBy(asc(blogs.id));
     return c.json({
       blogs: allBlogs,
@@ -13035,12 +13036,12 @@ blogRouter.get("/blogs-with-pagination", async (c) => {
     return c.json({ error });
   }
 });
-blogRouter.get("/:blogId", async (c) => {
+blogRouter.get("/:blogID", async (c) => {
   try {
     const client = new Zs({ connectionString: c.env.DATABASE_URL });
     const db = drizzle(client);
-    const blogId = parseInt(c.req.param("blogId"), 10);
-    const [blog] = await db.select().from(blogs).where(eq(blogs.id, blogId)).limit(1).execute();
+    const blogID = parseInt(c.req.param("blogID"), 10);
+    const [blog] = await db.select().from(blogs).where(eq(blogs.id, blogID)).limit(1).execute();
     return c.json({
       blog
     });
@@ -13098,7 +13099,7 @@ var jsonError = async (request, env, _ctx, middlewareCtx) => {
 var middleware_miniflare3_json_error_default = jsonError;
 var wrap = void 0;
 
-// .wrangler/tmp/bundle-f93OG4/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-B3gwsa/middleware-insertion-facade.js
 var envWrappers = [void 0, wrap].filter(Boolean);
 var facade = {
   ...src_default,
@@ -13133,7 +13134,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
   ]);
 }
 
-// .wrangler/tmp/bundle-f93OG4/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-B3gwsa/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

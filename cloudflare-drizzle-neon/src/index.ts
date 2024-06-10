@@ -1,11 +1,5 @@
 import { Hono } from 'hono';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import { Pool } from '@neondatabase/serverless';
 import { userRouter } from './routes/user';
-import { users, blogs } from './db/schema';
-import { hashPassword } from './hash';
-import { decode, sign, verify } from 'hono/jwt';
-import { eq } from 'drizzle-orm';
 import { blogRouter } from './routes/blog';
 
 export type Env = {
