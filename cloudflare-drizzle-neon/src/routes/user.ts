@@ -5,6 +5,7 @@ import { drizzle } from 'drizzle-orm/neon-serverless';
 import { Pool } from '@neondatabase/serverless';
 import { users } from '../db/schema';
 import { hashPassword } from '../hash';
+import { signinInput, signupInput } from '../zod/user';
 
 export type Env = {
   DATABASE_URL: string;
@@ -18,6 +19,12 @@ userRouter.post('/signup', async (c) => {
     const client = new Pool({ connectionString: c.env.DATABASE_URL });
     const db = drizzle(client);
     const body = await c.req.json();
+    const { success } = signupInput.safeParse(body);
+    if (!success) {
+      c.status(400);
+      return c.json({ error: 'Invalid input' });
+    }
+
     const [user] = await db
       .insert(users)
       .values({
@@ -48,6 +55,11 @@ userRouter.post('/signin', async (c) => {
     const client = new Pool({ connectionString: c.env.DATABASE_URL });
     const db = drizzle(client);
     const body = await c.req.json();
+    const { success } = signinInput.safeParse(body);
+    if (!success) {
+      c.status(400);
+      return c.json({ error: 'Invalid input' });
+    }
 
     const [user] = await db.select().from(users).where(eq(users.username, body.username)).limit(1).execute();
     if (!user) {

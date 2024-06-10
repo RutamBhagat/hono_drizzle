@@ -29,8 +29,8 @@ blogRouter.post('/', async (c) => {
   try {
     const client = new Pool({ connectionString: c.env.DATABASE_URL });
     const db = drizzle(client);
-    const body = await c.req.json();
     const authorID = parseInt(c.get('userId'));
+    const body = await c.req.json();
 
     const [blog] = await db
       .insert(blogs)
