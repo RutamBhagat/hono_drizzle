@@ -14,13 +14,14 @@ export const blogRouter = new Hono<{ Bindings: Env; Variables: { userId: string 
 
 blogRouter.use('/*', async (c, next) => {
   const authHeader = c.req.raw.headers.get('Authorization') || '';
-  const user = await verify(authHeader, c.env.JWT_SECRET_KEY);
-  if (!user) {
+  const token = authHeader.replace('Bearer ', '');
+  const payload = await verify(token, c.env.JWT_SECRET_KEY);
+  if (!payload) {
     c.status(403);
     return c.json({ error: 'Unauthorized' });
   }
-  c.set('userId', user.id);
-  next();
+  c.set('userId', payload.sub);
+  await next();
 });
 
 blogRouter.post('/', async (c) => {

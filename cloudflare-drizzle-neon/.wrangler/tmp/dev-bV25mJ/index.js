@@ -12949,7 +12949,7 @@ userRouter.post("/signin", async (c) => {
       return c.json({ error: "Invalid credentials" });
     }
     const payload = {
-      sub: body.id,
+      sub: user.id,
       exp: Math.floor(Date.now() / 1e3) + 60 * 30
       // Token expires in 30 minutes
     };
@@ -12969,13 +12969,14 @@ userRouter.post("/signin", async (c) => {
 var blogRouter = new Hono2();
 blogRouter.use("/*", async (c, next) => {
   const authHeader = c.req.raw.headers.get("Authorization") || "";
-  const user = await verify2(authHeader, c.env.JWT_SECRET_KEY);
-  if (!user) {
+  const token = authHeader.replace("Bearer ", "");
+  const payload = await verify2(token, c.env.JWT_SECRET_KEY);
+  if (!payload) {
     c.status(403);
     return c.json({ error: "Unauthorized" });
   }
-  c.set("userId", user.id);
-  next();
+  c.set("userId", payload.sub);
+  await next();
 });
 blogRouter.post("/", async (c) => {
   try {
