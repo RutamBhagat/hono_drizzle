@@ -1,0 +1,20 @@
+{
+  "version": "5",
+  "dialect": "pg",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1685404123192,
+      "tag": "0000_organic_lethal_legion",
+      "breakpoints": false
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1718019934558,
+      "tag": "0001_hesitant_gauntlet",
+      "breakpoints": true
+    }
+  ]
+}
