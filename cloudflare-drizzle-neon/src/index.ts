@@ -3,9 +3,11 @@ import { Pool } from '@neondatabase/serverless';
 import { users, blogs } from './db/schema';
 import { Hono } from 'hono';
 import { hashPassword } from './hash';
+import { decode, sign, verify } from 'hono/jwt';
 
 export type Env = {
   DATABASE_URL: string;
+  JWT_SECRET_KEY: string;
 };
 
 const app = new Hono<{ Bindings: Env }>();
@@ -20,8 +22,16 @@ app.post('/api/v1/user/signup', async (c) => {
       username: body.username,
       password: await hashPassword(body.password),
     });
+
+    const payload = {
+      sub: body.username,
+      exp: Math.floor(Date.now() / 1000) + 60 * 30, // Token expires in 30 minutes
+    };
+    const secret = c.env.JWT_SECRET_KEY;
+    const token = await sign(payload, secret);
+
     return c.json({
-      result,
+      token,
     });
   } catch (error) {
     c.status(411);

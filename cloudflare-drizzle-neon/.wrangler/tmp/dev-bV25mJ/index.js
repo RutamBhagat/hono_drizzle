@@ -1,11 +1,15 @@
 var __defProp = Object.defineProperty;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
 var __publicField = (obj, key, value) => {
   __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
   return value;
 };
 
-// .wrangler/tmp/bundle-tSHqox/checked-fetch.js
+// .wrangler/tmp/bundle-f93OG4/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -11747,8 +11751,8 @@ var HonoRequest = class {
   }
   getDecodedParam(key) {
     const paramKey = __privateGet2(this, _matchResult)[0][this.routeIndex][1][key];
-    const param = this.getParamValue(paramKey);
-    return param ? /\%/.test(param) ? decodeURIComponent_(param) : param : void 0;
+    const param2 = this.getParamValue(paramKey);
+    return param2 ? /\%/.test(param2) ? decodeURIComponent_(param2) : param2 : void 0;
   }
   getAllDecodedParams() {
     const decoded = {};
@@ -12736,6 +12740,177 @@ async function hashPassword(password, providedSalt) {
   return `${saltHex}:${hashHex}`;
 }
 
+// node_modules/hono/dist/utils/jwt/jwt.js
+var jwt_exports = {};
+__export(jwt_exports, {
+  decode: () => decode,
+  sign: () => sign,
+  verify: () => verify
+});
+
+// node_modules/hono/dist/utils/encode.js
+var decodeBase64Url = (str) => {
+  return decodeBase64(str.replace(/_|-/g, (m2) => ({ _: "/", "-": "+" })[m2] ?? m2));
+};
+var encodeBase64Url = (buf) => encodeBase64(buf).replace(/\/|\+/g, (m2) => ({ "/": "_", "+": "-" })[m2] ?? m2);
+var encodeBase64 = (buf) => {
+  let binary = "";
+  const bytes = new Uint8Array(buf);
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+};
+var decodeBase64 = (str) => {
+  const binary = atob(str);
+  const bytes = new Uint8Array(new ArrayBuffer(binary.length));
+  const half = binary.length / 2;
+  for (let i = 0, j = binary.length - 1; i <= half; i++, j--) {
+    bytes[i] = binary.charCodeAt(i);
+    bytes[j] = binary.charCodeAt(j);
+  }
+  return bytes;
+};
+
+// node_modules/hono/dist/utils/jwt/types.js
+var JwtAlgorithmNotImplemented = class extends Error {
+  constructor(alg) {
+    super(`${alg} is not an implemented algorithm`);
+    this.name = "JwtAlgorithmNotImplemented";
+  }
+};
+var JwtTokenInvalid = class extends Error {
+  constructor(token) {
+    super(`invalid JWT token: ${token}`);
+    this.name = "JwtTokenInvalid";
+  }
+};
+var JwtTokenNotBefore = class extends Error {
+  constructor(token) {
+    super(`token (${token}) is being used before it's valid`);
+    this.name = "JwtTokenNotBefore";
+  }
+};
+var JwtTokenExpired = class extends Error {
+  constructor(token) {
+    super(`token (${token}) expired`);
+    this.name = "JwtTokenExpired";
+  }
+};
+var JwtTokenIssuedAt = class extends Error {
+  constructor(currentTimestamp, iat) {
+    super(`Incorrect "iat" claim must be a older than "${currentTimestamp}" (iat: "${iat}")`);
+    this.name = "JwtTokenIssuedAt";
+  }
+};
+var JwtTokenSignatureMismatched = class extends Error {
+  constructor(token) {
+    super(`token(${token}) signature mismatched`);
+    this.name = "JwtTokenSignatureMismatched";
+  }
+};
+
+// node_modules/hono/dist/utils/jwt/jwt.js
+var utf8Encoder = new TextEncoder();
+var utf8Decoder = new TextDecoder();
+var encodeJwtPart = (part) => encodeBase64Url(utf8Encoder.encode(JSON.stringify(part))).replace(/=/g, "");
+var encodeSignaturePart = (buf) => encodeBase64Url(buf).replace(/=/g, "");
+var decodeJwtPart = (part) => JSON.parse(utf8Decoder.decode(decodeBase64Url(part)));
+var param = (name) => {
+  switch (name.toUpperCase()) {
+    case "HS256":
+      return {
+        name: "HMAC",
+        hash: {
+          name: "SHA-256"
+        }
+      };
+    case "HS384":
+      return {
+        name: "HMAC",
+        hash: {
+          name: "SHA-384"
+        }
+      };
+    case "HS512":
+      return {
+        name: "HMAC",
+        hash: {
+          name: "SHA-512"
+        }
+      };
+    default:
+      throw new JwtAlgorithmNotImplemented(name);
+  }
+};
+var signing = async (data, secret, alg = "HS256") => {
+  if (!crypto.subtle || !crypto.subtle.importKey) {
+    throw new Error("`crypto.subtle.importKey` is undefined. JWT auth middleware requires it.");
+  }
+  const utf8Encoder2 = new TextEncoder();
+  const cryptoKey = await crypto.subtle.importKey(
+    "raw",
+    utf8Encoder2.encode(secret),
+    param(alg),
+    false,
+    [
+      "sign"
+      /* Sign */
+    ]
+  );
+  return await crypto.subtle.sign(param(alg), cryptoKey, utf8Encoder2.encode(data));
+};
+var sign = async (payload, secret, alg = "HS256") => {
+  const encodedPayload = encodeJwtPart(payload);
+  const encodedHeader = encodeJwtPart({ alg, typ: "JWT" });
+  const partialToken = `${encodedHeader}.${encodedPayload}`;
+  const signaturePart = await signing(partialToken, secret, alg);
+  const signature = encodeSignaturePart(signaturePart);
+  return `${partialToken}.${signature}`;
+};
+var verify = async (token, secret, alg = "HS256") => {
+  const tokenParts = token.split(".");
+  if (tokenParts.length !== 3) {
+    throw new JwtTokenInvalid(token);
+  }
+  const { payload } = decode(token);
+  const now = Math.floor(Date.now() / 1e3);
+  if (payload.nbf && payload.nbf > now) {
+    throw new JwtTokenNotBefore(token);
+  }
+  if (payload.exp && payload.exp <= now) {
+    throw new JwtTokenExpired(token);
+  }
+  if (payload.iat && now < payload.iat) {
+    throw new JwtTokenIssuedAt(now, payload.iat);
+  }
+  const signaturePart = tokenParts.slice(0, 2).join(".");
+  const signature = await signing(signaturePart, secret, alg);
+  const encodedSignature = encodeSignaturePart(signature);
+  if (encodedSignature !== tokenParts[2]) {
+    throw new JwtTokenSignatureMismatched(token);
+  }
+  return payload;
+};
+var decode = (token) => {
+  try {
+    const [h, p2] = token.split(".");
+    const header = decodeJwtPart(h);
+    const payload = decodeJwtPart(p2);
+    return {
+      header,
+      payload
+    };
+  } catch (e) {
+    throw new JwtTokenInvalid(token);
+  }
+};
+
+// node_modules/hono/dist/middleware/jwt/index.js
+var verify2 = jwt_exports.verify;
+var decode2 = jwt_exports.decode;
+var sign2 = jwt_exports.sign;
+
 // src/index.ts
 var app = new Hono2();
 app.post("/api/v1/user/signup", async (c) => {
@@ -12748,8 +12923,15 @@ app.post("/api/v1/user/signup", async (c) => {
       username: body.username,
       password: await hashPassword(body.password)
     });
+    const payload = {
+      sub: body.username,
+      exp: Math.floor(Date.now() / 1e3) + 60 * 30
+      // Token expires in 30 minutes
+    };
+    const secret = c.env.JWT_SECRET_KEY;
+    const token = await sign2(payload, secret);
     return c.json({
-      result
+      token
     });
   } catch (error) {
     c.status(411);
@@ -12844,7 +13026,7 @@ var jsonError = async (request, env, _ctx, middlewareCtx) => {
 var middleware_miniflare3_json_error_default = jsonError;
 var wrap = void 0;
 
-// .wrangler/tmp/bundle-tSHqox/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-f93OG4/middleware-insertion-facade.js
 var envWrappers = [void 0, wrap].filter(Boolean);
 var facade = {
   ...src_default,
@@ -12879,7 +13061,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
   ]);
 }
 
-// .wrangler/tmp/bundle-tSHqox/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-f93OG4/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
