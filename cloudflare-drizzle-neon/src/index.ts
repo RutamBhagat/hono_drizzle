@@ -4,6 +4,7 @@ import { users, blogs } from './db/schema';
 import { Hono } from 'hono';
 import { hashPassword } from './hash';
 import { decode, sign, verify } from 'hono/jwt';
+import { eq } from 'drizzle-orm';
 
 export type Env = {
   DATABASE_URL: string;
@@ -17,14 +18,17 @@ app.post('/api/v1/user/signup', async (c) => {
     const client = new Pool({ connectionString: c.env.DATABASE_URL });
     const db = drizzle(client);
     const body = await c.req.json();
-    const result = await db.insert(users).values({
-      name: body.name,
-      username: body.username,
-      password: await hashPassword(body.password),
-    });
+    const [user] = await db
+      .insert(users)
+      .values({
+        name: body.name,
+        username: body.username,
+        password: await hashPassword(body.password),
+      })
+      .returning();
 
     const payload = {
-      sub: body.username,
+      sub: user.id,
       exp: Math.floor(Date.now() / 1000) + 60 * 30, // Token expires in 30 minutes
     };
     const secret = c.env.JWT_SECRET_KEY;
@@ -40,7 +44,32 @@ app.post('/api/v1/user/signup', async (c) => {
 });
 
 app.post('/api/v1/user/signin', async (c) => {
-  return c.text('Hello World');
+  try {
+    const client = new Pool({ connectionString: c.env.DATABASE_URL });
+    const db = drizzle(client);
+    const body = await c.req.json();
+
+    const [user] = await db.select().from(users).where(eq(users.username, body.username)).limit(1).execute();
+    if (!user) {
+      c.status(403);
+      return c.json({ error: 'Unauthorized' });
+    }
+
+    const payload = {
+      sub: body.id,
+      exp: Math.floor(Date.now() / 1000) + 60 * 30, // Token expires in 30 minutes
+    };
+    const secret = c.env.JWT_SECRET_KEY;
+    const token = await sign(payload, secret);
+
+    return c.json({
+      token,
+    });
+  } catch (error) {
+    console.log(error);
+    c.status(400);
+    return c.json({ error });
+  }
 });
 
 app.post('/api/v1/blog', async (c) => {
@@ -61,12 +90,8 @@ app.get('/api/v1/blog', async (c) => {
     });
   } catch (error) {
     console.log(error);
-    return c.json(
-      {
-        error,
-      },
-      400
-    );
+    c.status(400);
+    return c.json({ error });
   }
 });
 
@@ -80,12 +105,8 @@ app.get('/api/v1/blog/blog', async (c) => {
     });
   } catch (error) {
     console.log(error);
-    return c.json(
-      {
-        error,
-      },
-      400
-    );
+    c.status(400);
+    return c.json({ error });
   }
 });
 
