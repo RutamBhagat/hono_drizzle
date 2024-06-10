@@ -12967,19 +12967,30 @@ userRouter.post("/signin", async (c) => {
 
 // src/routes/blog.ts
 var blogRouter = new Hono2();
-blogRouter.post("/blog", async (c) => {
-  return c.text("Hello World");
+blogRouter.use("/*", async (c, next) => {
+  const authHeader = c.req.raw.headers.get("Authorization") || "";
+  const user = await verify2(authHeader, c.env.JWT_SECRET_KEY);
+  if (!user) {
+    c.status(403);
+    return c.json({ error: "Unauthorized" });
+  }
+  c.set("userId", user.id);
+  next();
 });
-blogRouter.put("/blog", async (c) => {
-  return c.text("Hello World");
-});
-blogRouter.get("/blog", async (c) => {
+blogRouter.post("/", async (c) => {
   try {
     const client = new Zs({ connectionString: c.env.DATABASE_URL });
     const db = drizzle(client);
-    const result = await db.select().from(blogs);
+    const body = await c.req.json();
+    const authorId = parseInt(c.get("userId"));
+    const [blog] = await db.insert(blogs).values({
+      title: body.title,
+      content: body.content,
+      authorID: authorId,
+      published: body.published
+    }).returning();
     return c.json({
-      result
+      blog
     });
   } catch (error) {
     console.log(error);
@@ -12987,13 +12998,50 @@ blogRouter.get("/blog", async (c) => {
     return c.json({ error });
   }
 });
-blogRouter.get("/blog/blog", async (c) => {
+blogRouter.put("/", async (c) => {
   try {
     const client = new Zs({ connectionString: c.env.DATABASE_URL });
     const db = drizzle(client);
-    const result = await db.select().from(blogs);
+    const body = await c.req.json();
+    const [blog] = await db.update(blogs).set({
+      title: body.title,
+      content: body.content,
+      published: body.published
+    }).where(eq(blogs.id, body.id)).returning();
     return c.json({
-      result
+      blog
+    });
+  } catch (error) {
+    console.log(error);
+    c.status(400);
+    return c.json({ error });
+  }
+});
+blogRouter.get("/blogs-with-pagination", async (c) => {
+  try {
+    const client = new Zs({ connectionString: c.env.DATABASE_URL });
+    const db = drizzle(client);
+    const cursor = parseInt(c.req.query("cursor"), 10) || void 0;
+    const limit = parseInt(c.req.query("limit"), 10) || 10;
+    const allBlogs = await db.select().from(blogs).where(cursor ? gt(blogs.id, cursor) : void 0).limit(limit).orderBy(asc(blogs.id));
+    return c.json({
+      blogs: allBlogs,
+      cursor: allBlogs.length > 0 ? allBlogs[allBlogs.length - 1].id : void 0
+    });
+  } catch (error) {
+    console.log(error);
+    c.status(400);
+    return c.json({ error });
+  }
+});
+blogRouter.get("/:blogId", async (c) => {
+  try {
+    const client = new Zs({ connectionString: c.env.DATABASE_URL });
+    const db = drizzle(client);
+    const blogId = parseInt(c.req.param("blogId"), 10);
+    const [blog] = await db.select().from(blogs).where(eq(blogs.id, blogId)).limit(1).execute();
+    return c.json({
+      blog
     });
   } catch (error) {
     console.log(error);
