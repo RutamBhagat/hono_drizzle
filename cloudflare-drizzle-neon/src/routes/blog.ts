@@ -4,6 +4,7 @@ import { drizzle } from 'drizzle-orm/neon-serverless';
 import { Pool } from '@neondatabase/serverless';
 import { blogs } from '../db/schema';
 import { verify } from 'hono/jwt';
+import { postBlogInput, updateBlogInput } from '../zod/blog';
 
 export type Env = {
   DATABASE_URL: string;
@@ -31,6 +32,11 @@ blogRouter.post('/', async (c) => {
     const db = drizzle(client);
     const authorID = parseInt(c.get('userId'));
     const body = await c.req.json();
+    const { success } = postBlogInput.safeParse(body);
+    if (!success) {
+      c.status(400);
+      return c.json({ error: 'Invalid input' });
+    }
 
     const [blog] = await db
       .insert(blogs)
@@ -57,6 +63,11 @@ blogRouter.put('/', async (c) => {
     const client = new Pool({ connectionString: c.env.DATABASE_URL });
     const db = drizzle(client);
     const body = await c.req.json();
+    const { success } = updateBlogInput.safeParse(body);
+    if (!success) {
+      c.status(400);
+      return c.json({ error: 'Invalid input' });
+    }
 
     const [blog] = await db
       .update(blogs)
