@@ -12708,10 +12708,53 @@ var Hono2 = class extends Hono {
   }
 };
 
+// src/hash.ts
+async function hashPassword(password, providedSalt) {
+  const encoder = new TextEncoder();
+  const salt = providedSalt || crypto.getRandomValues(new Uint8Array(16));
+  const keyMaterial = await crypto.subtle.importKey("raw", encoder.encode(password), { name: "PBKDF2" }, false, [
+    "deriveBits",
+    "deriveKey"
+  ]);
+  const key = await crypto.subtle.deriveKey(
+    {
+      name: "PBKDF2",
+      salt,
+      iterations: 1e5,
+      hash: "SHA-256"
+    },
+    keyMaterial,
+    { name: "AES-GCM", length: 256 },
+    true,
+    ["encrypt", "decrypt"]
+  );
+  const exportedKey = await crypto.subtle.exportKey("raw", key);
+  const hashBuffer = new Uint8Array(exportedKey);
+  const hashArray = Array.from(hashBuffer);
+  const hashHex = hashArray.map((b2) => b2.toString(16).padStart(2, "0")).join("");
+  const saltHex = Array.from(salt).map((b2) => b2.toString(16).padStart(2, "0")).join("");
+  return `${saltHex}:${hashHex}`;
+}
+
 // src/index.ts
 var app = new Hono2();
 app.post("/api/v1/user/signup", async (c) => {
-  return c.text("Hello World");
+  try {
+    const client = new Zs({ connectionString: c.env.DATABASE_URL });
+    const db = drizzle(client);
+    const body = await c.req.json();
+    const result = await db.insert(users).values({
+      name: body.name,
+      username: body.username,
+      password: await hashPassword(body.password)
+    });
+    return c.json({
+      result
+    });
+  } catch (error) {
+    c.status(411);
+    return c.json({ error: "User already exists with this username" });
+  }
 });
 app.post("/api/v1/user/signin", async (c) => {
   return c.text("Hello World");
